@@ -97,6 +97,7 @@ namespace Hooks {
         UpdateActorHook::Update_ = REL::Relocation<std::uintptr_t>(RE::VTABLE_Character[0])
                                        .write_vfunc(REL::Relocate(0xAD, 0xAD, 0xAF), UpdateActorHook::Update);
 
+
         MissileProjectile::Update_ = REL::Relocation<std::uintptr_t>(RE::MissileProjectile::VTABLE[0])
                                          .write_vfunc(0xAB, MissileProjectile::Update);
         BeamProjectile::Update_ =

@@ -8,6 +8,7 @@
 #include "Settings.h"
 #include "Utils.h"
 
+#include "ClibUtil/editorID.hpp"
 // #include "CLibUtilsQTR/DrawDebug.hpp"
 
 inline constexpr float M_PI_F = 3.14159265358979323846f;
@@ -126,6 +127,23 @@ namespace Frostwalker {
             return false;
         }
 
+        bool ShouldHardRockLava(RE::Actor* actor) {
+            if (!actor) return false;
+
+            auto* set = Settings::GetSingleton();
+            // Frostwalker creatures
+            if (actor->GetActorBase()->HasKeyword(set->Frostwalker_LavaWalk_Keywords[0])) {
+                return true;
+            }
+
+            for (auto FW_Keyword : set->Frostwalker_LavaWalk_Keywords) {
+                if (actor->HasMagicEffectWithKeyword(FW_Keyword)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         bool ShouldMeltIce(RE::Actor* actor) {
             if (!actor) return false;
 
@@ -162,7 +180,9 @@ namespace Frostwalker {
                 const auto level = (waterHeight + 100 - actorPos.z) / actorHeight;
                 auto* set = Settings::GetSingleton();
 
-                if (level >= 0.1f && ShouldFreezeWater(a_actor)) {
+                bool isLava = isWaterLava(a_actor->GetParentCell(), waterHeight);
+
+                if (level >= 0.1f && (ShouldFreezeWater(a_actor)  || (isLava && ShouldHardRockLava(a_actor )))) {
                     if (actorPos.z < waterHeight - 50) {
                         // Actor is too deep in water, don't spawn ice chunk
                         return;
@@ -181,7 +201,9 @@ namespace Frostwalker {
                             }
                         }
                     }
-                    spawnIceChunk(50, spawnPos, true);
+                    
+                    spawnIceChunk(50, spawnPos, isLava, true);
+
                 } else if (ShouldMeltIce(a_actor)) {
                     for (auto& hazard : HazardIceChunks) {
                         if (auto hazardRef = hazard.second.handle.get().get()) {
@@ -195,7 +217,7 @@ namespace Frostwalker {
                             if (distanceX < hazardSize.x && distanceY < hazardSize.y &&
                                 distanceZ < hazardSize.z + actorHeight) {
                                 if (auto hazardHazard = hazardRef->As<RE::Hazard>()) {
-                                    float threshold = hazardHazard->GetHazardRuntimeData().lifetime - set->meltingTime;
+                                    float threshold = hazardHazard->GetHazardRuntimeData().lifetime - (set->meltingTime*3);
                                     if (hazardHazard->GetHazardRuntimeData().age < threshold) {
                                         hazardHazard->GetHazardRuntimeData().age = threshold;
                                     }
@@ -282,7 +304,6 @@ namespace Frostwalker {
             logger::debug("ProjectileUpdate called for projectile {} type {}", a_projectile->GetBaseObject()->GetName(),
                           typeStr);
                           */
-                          
 
             // auto start = std::chrono::high_resolution_clock::now();
             static auto set = Settings::GetSingleton();
@@ -303,8 +324,16 @@ namespace Frostwalker {
 
             if (!a_projectile->IsDisabled() && !a_projectile->IsDeleted()) {
                 auto damageType = Utils::GetProjectileType(a_projectile);
-                if (damageType == ElementType::Cold) {
+                if (damageType == ElementType::Cold || damageType == ElementType::Water) {
                     RE::NiPoint3 startPos = a_projectile->GetPosition();
+
+                    const auto waterHeight = Utils::get_water_height(a_projectile, startPos);
+                    bool isLava = isWaterLava(a_projectile->GetParentCell(), waterHeight);
+
+                    if (!isLava && damageType == ElementType::Water) {
+                        return;  // Skip water projectiles in non-lava water
+                    }
+
                     float projectileHeight = a_projectile->GetHeight();
                     if (projectileHeight <= 0.0f) {
                         projectileHeight = 1.0f;  // Default height if not set
@@ -331,11 +360,11 @@ namespace Frostwalker {
                             endPos = beamEnd->world.translate;
                         }
 
-                        //DebugAPI_IMPL::DebugAPI::GetSingleton()->DrawLineForMS(startPos, endPos, 5000, {0, 1, 1, 1});
+                        // DebugAPI_IMPL::DebugAPI::GetSingleton()->DrawLineForMS(startPos, endPos, 5000, {0, 1, 1, 1});
 
-                        const auto waterHeight = Utils::get_water_height(a_projectile, startPos);
-                        //logger::debug("Projectile {} water height: {}, startPos.z: {}, endPos.z: {}",
-                        //              a_projectile->GetFormID(), waterHeight, startPos.z, endPos.z);
+
+                        // logger::debug("Projectile {} water height: {}, startPos.z: {}, endPos.z: {}",
+                        //               a_projectile->GetFormID(), waterHeight, startPos.z, endPos.z);
                         if (endPos.z != startPos.z) {
                             const auto t = (waterHeight - startPos.z) / (endPos.z - startPos.z);
                             endPos.x = (endPos.x - startPos.x) * t + startPos.x;
@@ -344,18 +373,18 @@ namespace Frostwalker {
 
                         if (!(waterHeight == -RE::NI_INFINITY)) {
                             const auto level = (waterHeight - endPos.z) / projectileHeight;
-                            //logger::debug("Projectile {} water level: {}, water height: {}, projectile height: {}, endPos.z: {}",
-                            //    a_projectile->GetFormID(), level, waterHeight, projectileHeight, endPos.z);
+                            // logger::debug("Projectile {} water level: {}, water height: {}, projectile height: {},
+                            // endPos.z: {}",
+                            //     a_projectile->GetFormID(), level, waterHeight, projectileHeight, endPos.z);
                             if (level >= 0.1f) {
                                 endPos.z = waterHeight;
                                 auto damage = Utils::GetDamageFromProjectile(a_projectile);
-                                //logger::debug("Projectile {} hit water at position {}, {}, {}, spawning ice chunk",
-                                //    a_projectile->GetFormID(), endPos.x, endPos.y, endPos.z);
-                                spawnIceChunk(damage, endPos);
+                                // logger::debug("Projectile {} hit water at position {}, {}, {}, spawning ice chunk",
+                                //     a_projectile->GetFormID(), endPos.x, endPos.y, endPos.z);
+                                spawnIceChunk(damage, endPos, isLava);
                             }
                         }
                     } else {
-                        const auto waterHeight = Utils::get_water_height(a_projectile, startPos);
                         if (!(waterHeight == -RE::NI_INFINITY)) {
                             float treshold = a_projectile->GetHeight() + 50.0f;
                             if (startPos.z > waterHeight - treshold && startPos.z < waterHeight + treshold) {
@@ -363,7 +392,7 @@ namespace Frostwalker {
                                 // DebugAPI_IMPL::DebugAPI::GetSingleton()->DrawLineForMS(startPos, spawnPos, 5000,
                                 //                                                        {0, 1, 1, 1});
                                 auto damage = Utils::GetDamageFromProjectile(a_projectile);
-                                spawnIceChunk(damage, spawnPos);
+                                spawnIceChunk(damage, spawnPos, isLava);
                                 if (it != lastProcessTime.end()) {
                                     it->second = now;
                                 } else {
@@ -393,7 +422,8 @@ namespace Frostwalker {
             }
 
             auto damageType = Utils::GetExplosionType(a_explosion);
-            if (damageType == ElementType::Cold || damageType == ElementType::Fire) {
+            if (damageType == ElementType::Cold || damageType == ElementType::Fire || damageType == ElementType::Water) {
+                
                 auto spawnPos = a_explosion->GetPosition();
                 auto& explosionRuntimeData = a_explosion->GetExplosionRuntimeData();
                 float radius = std::max(explosionRuntimeData.radius, 50.0f);
@@ -415,16 +445,18 @@ namespace Frostwalker {
                     }
                 }
 
-                if (damageType == ElementType::Cold) {
+                if (damageType == ElementType::Cold || damageType == ElementType::Water) {
                     color = {0, 1, 1, 1};
                     auto [waterAffectedRadius, waterHeight] = Utils::get_explosion_water_radius(a_explosion, radius);
 
                     if (waterHeight != -RE::NI_INFINITY && waterAffectedRadius > 0.0f) {
                         spawnPos.z = waterHeight;
+                        bool isLava = isWaterLava(a_explosion->GetParentCell(), waterHeight);
+
                         if (waterAffectedRadius < 100) {
-                            spawnIceChunk(base_damage, spawnPos);
+                            spawnIceChunk(base_damage, spawnPos, isLava);
                         } else {
-                            spawnIceFloe(waterAffectedRadius, spawnPos);
+                            spawnIceFloe(waterAffectedRadius, spawnPos, isLava);
                         }
                     }
                 }
@@ -462,6 +494,24 @@ namespace Frostwalker {
                         hazard->GetHazardRuntimeData().age = std::min(age + scaledDamage, threshold);
                     }
                 }
+            } else if (type == ElementType::Water) {
+                // If we are here we know a_ref is from Frostwalker.esp, all we need is to check if its IceFloe or LavaFloe
+                auto editorID = clib_util::editorID::get_editorID(a_ref->GetBaseObject());
+                if (!editorID.empty()) {
+                    std::string lowerStr = Utils::ToLower(editorID);
+                    if (lowerStr.find("lava") != std::string::npos) {
+                        if (auto hazard = a_ref->As<RE::Hazard>()) {
+                            auto lifetime = hazard->GetHazardRuntimeData().lifetime;
+                            auto age = hazard->GetHazardRuntimeData().age;
+
+                            float threshold = lifetime - set->meltingTime;
+
+                            if (age < threshold) {
+                                hazard->GetHazardRuntimeData().age = std::min(age + scaledDamage, threshold);
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -470,6 +520,7 @@ namespace Frostwalker {
             if (!set->ModActive) {
                 return;
             }
+
             if (a_ref && a_proj) {
                 // auto start = std::chrono::high_resolution_clock::now();
 
@@ -492,11 +543,34 @@ namespace Frostwalker {
         }
 
     private:
-        void spawnIceChunk(float damage, RE::NiPoint3 SpawnPos, bool Actor = false) {
+
+        bool isWaterLava(RE::TESObjectCELL* cell, float waterHeight) {
+            bool isLava = false;
+
+            if (cell) {
+                if (waterHeight < cell->GetRuntimeData().waterHeight + 10 &&
+                    waterHeight > cell->GetRuntimeData().waterHeight - 10) {
+                    if (auto* extra = cell->extraList.GetByType<RE::ExtraCellWaterType>()) {
+                        if (auto* waterForm = extra->water) {
+                            auto editorID = clib_util::editorID::get_editorID(waterForm);
+                            if (!editorID.empty()) {
+                                std::string lowerStr = Utils::ToLower(editorID);
+                                if (lowerStr.find("lava") != std::string::npos) {
+                                    isLava = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return isLava;
+        }
+
+        void spawnIceChunk(float damage, RE::NiPoint3 SpawnPos, bool isLava, bool Actor = false) {
             if (damage <= 0.0f) {
                 return;
             }
-            SKSE::GetTaskInterface()->AddTask([this, damage, SpawnPos, Actor] {
+            SKSE::GetTaskInterface()->AddTask([this, damage, SpawnPos, isLava, Actor] {
                 static auto set = Settings::GetSingleton();
                 static auto player = RE::PlayerCharacter::GetSingleton();
 
@@ -512,18 +586,25 @@ namespace Frostwalker {
                     }
                 }
 
-                if (set->IceChunks.empty()) {
-                    logger::warn("No IceChunks defined in settings");
+                std::vector<RE::BGSHazard*> Floes;
+
+                if (isLava)
+                    Floes = set->LavaChunks;
+                else
+                    Floes = set->IceChunks;
+
+                if (Floes.empty()) {
+                    logger::warn("No Floes defined in settings");
                     return;
                 }
 
                 int iceChunk = 0;
                 if (!Actor) {
-                    int maxIndex = static_cast<int>(set->IceChunks.size()) - 1;
+                    int maxIndex =static_cast<int>(Floes.size()) - 1;
                     iceChunk = RandomInt(0, maxIndex);
                 }
 
-                RE::TESBoundObject* objToSpawn = set->IceChunks[static_cast<std::size_t>(iceChunk)];
+                RE::TESBoundObject* objToSpawn = Floes[static_cast<std::size_t>(iceChunk)];
                 if (!objToSpawn) {
                     logger::error("Selected IceChunk object is null");
                     return;
@@ -536,10 +617,14 @@ namespace Frostwalker {
                 }
                 // Random rotation around Z-axis (yaw) to add visual variety
                 float yaw = RandomFloat(-M_PI_F, M_PI_F);
-                float scale = std::clamp(damage / set->damageScale, set->minScale, set->maxScale);
+                float scale = Actor ? set->maxScale :std::clamp(damage / set->damageScale, set->minScale, set->maxScale);
 
                 RE::NiPoint3 finalSpawnPos = SpawnPos;
                 finalSpawnPos.z += RandomFloat(-1.0f, 1.0f);  // Slightly randomize the Z position for fixing z fighting
+
+                if (isLava) {
+                    finalSpawnPos.z += 20.0f;  // Raise the floe above lava
+                }
 
                 spawnedRef->SetPosition(finalSpawnPos);
                 spawnedRef->SetAngle(RE::NiPoint3{0.0f, 0.0f, yaw});
@@ -556,39 +641,48 @@ namespace Frostwalker {
             });
         }
 
-        void spawnIceFloe(float radius, RE::NiPoint3 SpawnPos) {
-            SKSE::GetTaskInterface()->AddTask([this, radius, SpawnPos] {
+        void spawnIceFloe(float radius, RE::NiPoint3 SpawnPos, bool isLava) {
+            SKSE::GetTaskInterface()->AddTask([this, radius, SpawnPos, isLava] {
                 static auto set = Settings::GetSingleton();
                 static auto player = RE::PlayerCharacter::GetSingleton();
 
-                std::vector<RE::BGSHazard*> IceFloes;
+                std::vector<RE::BGSHazard*> Floes;
 
                 IceSize newSize;
 
                 if (radius < 350) {
                     newSize = IceSize::Small;
-                    IceFloes = set->IceFloesS;
+                    if (isLava)
+                        Floes = set->LavaFloesS;
+                    else
+                        Floes = set->IceFloesS;
                 } else if (radius < 700) {
                     newSize = IceSize::Medium;
-                    IceFloes = set->IceFloesM;
+                    if (isLava)
+                        Floes = set->LavaFloesM;
+                    else
+                        Floes = set->IceFloesM;
                 } else {
                     newSize = IceSize::Large;
-                    IceFloes = set->IceFloesL;
+                    if (isLava)
+                        Floes = set->LavaFloesL;
+                    else
+                        Floes = set->IceFloesL;
                 }
 
-                if (IceFloes.empty()) {
-                    logger::warn("No IceFloes defined in settings");
+                if (Floes.empty()) {
+                    logger::warn("No Floes defined in settings");
                     return;
                 }
 
-                int maxIndex = static_cast<int>(IceFloes.size()) - 1;
+                int maxIndex = static_cast<int>(Floes.size()) - 1;
                 if (maxIndex < 0) {
                     logger::error("IceFloe size underflow");
                     return;
                 }
                 int iceChunk = RandomInt(0, maxIndex);
 
-                RE::TESBoundObject* objToSpawn = IceFloes[static_cast<std::size_t>(iceChunk)];
+                RE::TESBoundObject* objToSpawn = Floes[static_cast<std::size_t>(iceChunk)];
                 if (!objToSpawn) {
                     logger::error("Selected IceFloe object is null");
                     return;
@@ -616,6 +710,10 @@ namespace Frostwalker {
 
                 RE::NiPoint3 finalSpawnPos = SpawnPos;
                 finalSpawnPos.z += RandomFloat(-1.0f, 1.0f);  // Slightly randomize the Z position for variety
+
+                if (isLava) {
+                    finalSpawnPos.z += 20.0f;  // Raise the floe above lava
+                }
 
                 spawnedRef->SetPosition(finalSpawnPos);
                 spawnedRef->SetAngle(RE::NiPoint3{0.0f, 0.0f, yaw});

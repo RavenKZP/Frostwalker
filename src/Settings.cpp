@@ -12,24 +12,40 @@ bool Settings::Init() {
     auto Frostwalker_IceFloeS01 = RE::TESForm::LookupByEditorID<RE::BGSHazard>("Frostwalker_IceFloeS01");
     auto Frostwalker_IceFloeS02 = RE::TESForm::LookupByEditorID<RE::BGSHazard>("Frostwalker_IceFloeS02");
 
+    auto Frostwalker_LavaFloeChunkS01 = RE::TESForm::LookupByEditorID<RE::BGSHazard>("Frostwalker_LavaFloeChunkS01");
+    auto Frostwalker_LavaFloeChunkS02 = RE::TESForm::LookupByEditorID<RE::BGSHazard>("Frostwalker_LavaFloeChunkS02");
+    auto Frostwalker_LavaFloeChunkS03 = RE::TESForm::LookupByEditorID<RE::BGSHazard>("Frostwalker_LavaFloeChunkS03");
+
+    auto Frostwalker_LavaFloeL01 = RE::TESForm::LookupByEditorID<RE::BGSHazard>("Frostwalker_LavaFloeL01");
+    auto Frostwalker_LavaFloeM01 = RE::TESForm::LookupByEditorID<RE::BGSHazard>("Frostwalker_LavaFloeM01");
+    auto Frostwalker_LavaFloeS01 = RE::TESForm::LookupByEditorID<RE::BGSHazard>("Frostwalker_LavaFloeS01");
+    auto Frostwalker_LavaFloeS02 = RE::TESForm::LookupByEditorID<RE::BGSHazard>("Frostwalker_LavaFloeS02");
+
     auto Frostwalker_FrostWalk_Keyword = RE::TESForm::LookupByEditorID<RE::BGSKeyword>("Frostwalker_FrostWalk_Keyword");
     auto Frostwalker_FrostCloak_Keyword =
         RE::TESForm::LookupByEditorID<RE::BGSKeyword>("Frostwalker_FrostCloak_Keyword");
-
 
     auto Frostwalker_FireWalk_Keyword = RE::TESForm::LookupByEditorID<RE::BGSKeyword>("Frostwalker_FireWalk_Keyword");
     auto Frostwalker_FireCloak_Keyword =
         RE::TESForm::LookupByEditorID<RE::BGSKeyword>("Frostwalker_FireCloak_Keyword");
 
+    
+    auto Frostwalker_LavaWalk_Keyword = RE::TESForm::LookupByEditorID<RE::BGSKeyword>("Frostwalker_LavaWalk_Keyword");
+    auto Frostwalker_WaterCloak_Keyword =
+        RE::TESForm::LookupByEditorID<RE::BGSKeyword>("Frostwalker_WaterCloak_Keyword");
+
 
     if (!Frostwalker_IceFloeChunkS01 || !Frostwalker_IceFloeChunkS02 || !Frostwalker_IceFloeChunkS03 ||
         !Frostwalker_IceFloeL01 || !Frostwalker_IceFloeM01 || !Frostwalker_IceFloeS01 || !Frostwalker_IceFloeS02 ||
+        !Frostwalker_LavaFloeChunkS01 || !Frostwalker_LavaFloeChunkS02 || !Frostwalker_LavaFloeChunkS03 ||
+        !Frostwalker_LavaFloeL01 || !Frostwalker_LavaFloeM01 || !Frostwalker_LavaFloeS01 || !Frostwalker_LavaFloeS02 ||
         !Frostwalker_FrostWalk_Keyword || !Frostwalker_FrostCloak_Keyword || !Frostwalker_FireWalk_Keyword ||
-        !Frostwalker_FireCloak_Keyword) {
+        !Frostwalker_FireCloak_Keyword || !Frostwalker_LavaWalk_Keyword || !Frostwalker_WaterCloak_Keyword) {
         logger::error("Failed to find one or more required forms. Please ensure Frostwalker.esp is loaded.");
         ModActive = false;
         return false;
     }
+
     IceChunks.push_back(Frostwalker_IceFloeChunkS01);
     IceChunks.push_back(Frostwalker_IceFloeChunkS02);
     IceChunks.push_back(Frostwalker_IceFloeChunkS03);
@@ -39,11 +55,23 @@ bool Settings::Init() {
     IceFloesS.push_back(Frostwalker_IceFloeS01);
     IceFloesS.push_back(Frostwalker_IceFloeS02);
 
+    LavaChunks.push_back(Frostwalker_LavaFloeChunkS01);
+    LavaChunks.push_back(Frostwalker_LavaFloeChunkS02);
+    LavaChunks.push_back(Frostwalker_LavaFloeChunkS03);
+
+    LavaFloesL.push_back(Frostwalker_LavaFloeL01);
+    LavaFloesM.push_back(Frostwalker_LavaFloeM01);
+    LavaFloesS.push_back(Frostwalker_LavaFloeS01);
+    LavaFloesS.push_back(Frostwalker_LavaFloeS02);
+
     Frostwalker_FrostWalk_Keywords.push_back(Frostwalker_FrostWalk_Keyword);
     Frostwalker_FrostWalk_Keywords.push_back(Frostwalker_FrostCloak_Keyword);
 
     Frostwalker_FireWalk_Keywords.push_back(Frostwalker_FireWalk_Keyword);
     Frostwalker_FireWalk_Keywords.push_back(Frostwalker_FireCloak_Keyword);
+
+    Frostwalker_LavaWalk_Keywords.push_back(Frostwalker_LavaWalk_Keyword);
+    Frostwalker_LavaWalk_Keywords.push_back(Frostwalker_WaterCloak_Keyword);
 
     LoadSettings();
 	return true;
@@ -231,17 +259,21 @@ void Settings::LoadSettings() {
 
     LoadAllPatterns("Data\\SKSE\\Plugins\\Frostwalker\\NeutralSources", neutralSources);
     LoadAllPatterns("Data\\SKSE\\Plugins\\Frostwalker\\FrostSources", coldSources);
+    LoadAllPatterns("Data\\SKSE\\Plugins\\Frostwalker\\WaterSources", waterSources);
     LoadAllPatterns("Data\\SKSE\\Plugins\\Frostwalker\\FireSources", fireSources);
 
     LoadAllKeywords("Data\\SKSE\\Plugins\\Frostwalker\\FrostKeywords", Frostwalker_FrostWalk_Keywords);
     LoadAllKeywords("Data\\SKSE\\Plugins\\Frostwalker\\FireKeywords", Frostwalker_FireWalk_Keywords);
+    LoadAllKeywords("Data\\SKSE\\Plugins\\Frostwalker\\WaterKeywords", Frostwalker_LavaWalk_Keywords);
 
     logger::info("Loaded {} neutral source patterns", neutralSources.size());
     logger::info("Loaded {} fire source patterns", fireSources.size());
     logger::info("Loaded {} frost source patterns", coldSources.size());
+    logger::info("Loaded {} water source patterns", waterSources.size());
 
     logger::info("Loaded {} FrostWalk Keywords", Frostwalker_FrostWalk_Keywords.size());
     logger::info("Loaded {} FireWalk Keywords", Frostwalker_FireWalk_Keywords.size());
+    logger::info("Loaded {} LavaWalk Keywords", Frostwalker_LavaWalk_Keywords.size());
 }
 
 

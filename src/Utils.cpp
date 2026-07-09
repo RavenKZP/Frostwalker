@@ -47,6 +47,8 @@ namespace Utils {
             typeStr = "Cold";
         else if (ret == ElementType::Fire)
             typeStr = "Fire";
+        else if (ret == ElementType::Water)
+            typeStr = "Water";
         else
             typeStr = "Neutral";
         logger::info("Projectile Type Detection: {} -> {}", proj ? proj->GetFormID() : 0, typeStr);
@@ -79,6 +81,7 @@ namespace Utils {
                 if (MatchesAnyPattern(lowerStr, set->neutralSources)) return ElementType::Neutral;
                 if (MatchesAnyPattern(lowerStr, set->coldSources)) return ElementType::Cold;
                 if (MatchesAnyPattern(lowerStr, set->fireSources)) return ElementType::Fire;
+                if (MatchesAnyPattern(lowerStr, set->waterSources)) return ElementType::Water;
                 return ElementType::Neutral;
             };
 
@@ -165,6 +168,7 @@ namespace Utils {
                 if (MatchesAnyPattern(lowerStr, set->neutralSources)) return ElementType::Neutral;
                 if (MatchesAnyPattern(lowerStr, set->coldSources)) return ElementType::Cold;
                 if (MatchesAnyPattern(lowerStr, set->fireSources)) return ElementType::Fire;
+                if (MatchesAnyPattern(lowerStr, set->waterSources)) return ElementType::Water;
                 return ElementType::Neutral;
             };
 
@@ -311,4 +315,5 @@ namespace Utils {
 
         return std::make_pair(std::max(waterAffectedRadius, 0.0f), waterHeight);
     }
-}
+}  // namespace Utils
+

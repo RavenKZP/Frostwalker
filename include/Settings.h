@@ -33,13 +33,20 @@ public:
 
     std::vector<std::string> neutralSources;
     std::vector<std::string> coldSources;
+    std::vector<std::string> waterSources;
     std::vector<std::string> fireSources;
 
     std::vector<RE::BGSHazard*> IceChunks;
     std::vector<RE::BGSHazard*> IceFloesL;
     std::vector<RE::BGSHazard*> IceFloesM;
     std::vector<RE::BGSHazard*> IceFloesS;
+    
+    std::vector<RE::BGSHazard*> LavaChunks;
+    std::vector<RE::BGSHazard*> LavaFloesL;
+    std::vector<RE::BGSHazard*> LavaFloesM;
+    std::vector<RE::BGSHazard*> LavaFloesS;
 
     std::vector<RE::BGSKeyword*> Frostwalker_FrostWalk_Keywords;
     std::vector<RE::BGSKeyword*> Frostwalker_FireWalk_Keywords;
+    std::vector<RE::BGSKeyword*> Frostwalker_LavaWalk_Keywords;
 };
