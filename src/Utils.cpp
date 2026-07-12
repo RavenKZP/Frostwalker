@@ -56,18 +56,20 @@ namespace Utils {
     }
 
     ElementType GetProjectileTypeNoLogs(RE::Projectile* proj) {
-        static std::unordered_map<RE::TESForm*, ElementType> detectionCache;  // cache by base object
         static auto* set = Settings::GetSingleton();
+        static auto* DetectionCache = DetectionCache::GetSingleton();
 
         if (!proj) return ElementType::Neutral;
 
         auto* base = proj->GetBaseObject();
         if (!base) return ElementType::Neutral;
 
-        // 2. Check cache by base object
-        auto cacheIt = detectionCache.find(base);
-        if (cacheIt != detectionCache.end()) {
-            return cacheIt->second;
+        auto baseFormID = base->GetFormID();
+
+        // 1. Check cache by base object
+        auto cacheIt = DetectionCache->Get(baseFormID);
+        if (cacheIt.has_value()) {
+            return cacheIt.value();
         }
 
         ElementType type = ElementType::Neutral;
@@ -106,7 +108,7 @@ namespace Utils {
         if (auto spellSource = proj->GetProjectileRuntimeData().spell) {
             type = CheckPatterns(spellSource);
             if (type != ElementType::Neutral) {
-                detectionCache[base] = type;
+                DetectionCache->Add(baseFormID, type);
                 return type;
             }
 
@@ -115,7 +117,7 @@ namespace Utils {
                 if (magEf && magEf->baseEffect) {
                     type = CheckPatterns(magEf->baseEffect);
                     if (type != ElementType::Neutral) {
-                        detectionCache[base] = type;
+                        DetectionCache->Add(baseFormID, type);
                         return type;
                     }
                 }
@@ -125,41 +127,43 @@ namespace Utils {
         // 4. Ammo source
         type = CheckPatterns(proj->GetProjectileRuntimeData().ammoSource);
         if (type != ElementType::Neutral) {
-            detectionCache[base] = type;
+            DetectionCache->Add(baseFormID, type);
             return type;
         }
 
         // 5. Weapon source
         type = CheckPatterns(proj->GetProjectileRuntimeData().weaponSource);
         if (type != ElementType::Neutral) {
-            detectionCache[base] = type;
+            DetectionCache->Add(baseFormID, type);
             return type;
         }
 
         // 6. Projectile's own base object
         type = CheckPatterns(base);
-        detectionCache[base] = type;
+        DetectionCache->Add(baseFormID, type);
         return type;
     }
 
     ElementType GetExplosionType(RE::Explosion* exp) {
-        static std::unordered_map<RE::TESForm*, ElementType> detectionCache;  // cache by base object
         static auto* set = Settings::GetSingleton();
+        static auto* DetectionCache = DetectionCache::GetSingleton();
 
         if (!exp) return ElementType::Neutral;
 
         auto* base = exp->GetBaseObject();
         if (!base) return ElementType::Neutral;
 
-        // 2. Cache check
-        auto cacheIt = detectionCache.find(base);
-        if (cacheIt != detectionCache.end()) {
-            return cacheIt->second;
+        auto baseFormID = base->GetFormID();
+
+        // 1. Cache check
+        auto cacheIt = DetectionCache->Get(baseFormID);
+        if (cacheIt.has_value()) {
+            return cacheIt.value();
         }
 
         ElementType type = ElementType::Neutral;
 
-        // 3. Helper lambda for pattern matching
+        // Helper lambda for pattern matching
         auto CheckPatterns = [&](RE::TESForm* form) -> ElementType {
             if (!form) return ElementType::Neutral;
 
@@ -194,7 +198,7 @@ namespace Utils {
         };
 
         type = CheckPatterns(base);
-        detectionCache[base] = type;
+        DetectionCache->Add(baseFormID, type);
         return type;
     }
 

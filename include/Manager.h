@@ -77,7 +77,7 @@ namespace Frostwalker {
 
             if (remainingLife <= set->meltingTime && remainingLife > 0.0f) {
                 if (auto obj3d = ref->Get3D()) {
-                    float meltProgress = std::max(0.0f, remainingLife / set->meltingTime);
+                    float meltProgress = std::clamp(remainingLife / set->meltingTime, 0.0f, 1.0f);
                     obj3d->local.rotate.entry[2][2] = meltProgress;
                     if (auto fade = obj3d->AsFadeNode()) {
                         fade->GetRuntimeData().currentFade = meltProgress;
@@ -94,7 +94,22 @@ namespace Frostwalker {
                         fade->GetRuntimeData().currentFade = 0.0f;
                     }
                 }
-            } else {
+            } else if (age < set->meltingTime) {
+                if (auto obj3d = ref->Get3D()) {
+                    float meltProgress = std::clamp(age / set->meltingTime, 0.0f, 1.0f);
+
+                    if (obj3d->local.rotate.entry[2][2] < 1.0f) {
+                        obj3d->local.rotate.entry[2][2] = meltProgress;
+                        if (auto fade = obj3d->AsFadeNode()) {
+                            fade->GetRuntimeData().currentFade = meltProgress;
+                        }
+                        RE::NiUpdateData updData;
+                        updData.flags = RE::NiUpdateData::Flag::kNone;
+                        updData.time = 0.0f;
+                        obj3d->UpdateTransformAndBounds(updData);
+                    }
+                }
+            } else  {
                 if (auto obj3d = ref->Get3D()) {
                     if (obj3d->local.rotate.entry[2][2] < 1.0f) {
                         obj3d->local.rotate.entry[2][2] = 1.0f;
@@ -250,10 +265,7 @@ namespace Frostwalker {
                     // visability
                     float lifetime = hazardType->GetHazardRuntimeData().lifetime;
                     float age = hazardType->GetHazardRuntimeData().age;
-                    float remainingLife = lifetime - age;
-                    if (remainingLife <= set->meltingTime && remainingLife > 0.0f) {
-                        MeltObject(hazardRef, lifetime, age);
-                    }
+                    MeltObject(hazardRef, lifetime, age);
 
                 } else {
                     // logger::debug("Hazard ref {} is no longer valid, removing from HazardIceChunks",
