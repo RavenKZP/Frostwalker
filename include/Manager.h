@@ -184,7 +184,7 @@ namespace Frostwalker {
             }
 
             auto actorPos = a_actor->GetPosition();
-            auto waterHeight = Utils::get_water_height(a_actor, actorPos);
+            auto [waterHeight, isLava] = Utils::get_water_height(actorPos);
             auto actorHeight = a_actor->GetHeight();
             if (actorHeight <= 0.0f) {
                 actorHeight = 50.0f;  // Default height if not set
@@ -194,8 +194,6 @@ namespace Frostwalker {
             if (!(waterHeight == -RE::NI_INFINITY)) {
                 const auto level = (waterHeight + 100 - actorPos.z) / actorHeight;
                 auto* set = Settings::GetSingleton();
-
-                bool isLava = isWaterLava(a_actor->GetParentCell(), waterHeight);
 
                 if (level >= 0.1f && (ShouldFreezeWater(a_actor)  || (isLava && ShouldHardRockLava(a_actor )))) {
                     if (actorPos.z < waterHeight - 50) {
@@ -339,8 +337,7 @@ namespace Frostwalker {
                 if (damageType == ElementType::Cold || damageType == ElementType::Water) {
                     RE::NiPoint3 startPos = a_projectile->GetPosition();
 
-                    const auto waterHeight = Utils::get_water_height(a_projectile, startPos);
-                    bool isLava = isWaterLava(a_projectile->GetParentCell(), waterHeight);
+                    const auto [waterHeight, isLava] = Utils::get_water_height(startPos);
 
                     if (!isLava && damageType == ElementType::Water) {
                         return;  // Skip water projectiles in non-lava water
@@ -459,11 +456,11 @@ namespace Frostwalker {
 
                 if (damageType == ElementType::Cold || damageType == ElementType::Water) {
                     color = {0, 1, 1, 1};
-                    auto [waterAffectedRadius, waterHeight] = Utils::get_explosion_water_radius(a_explosion, radius);
+                    auto [waterAffectedRadius, waterHeight, isLava] =
+                        Utils::get_explosion_water_radius(a_explosion, radius);
 
                     if (waterHeight != -RE::NI_INFINITY && waterAffectedRadius > 0.0f) {
                         spawnPos.z = waterHeight;
-                        bool isLava = isWaterLava(a_explosion->GetParentCell(), waterHeight);
 
                         if (waterAffectedRadius < 100) {
                             spawnIceChunk(base_damage, spawnPos, isLava);
@@ -555,29 +552,6 @@ namespace Frostwalker {
         }
 
     private:
-
-        bool isWaterLava(RE::TESObjectCELL* cell, float waterHeight) {
-            bool isLava = false;
-
-            if (cell) {
-                if (waterHeight < cell->GetRuntimeData().waterHeight + 10 &&
-                    waterHeight > cell->GetRuntimeData().waterHeight - 10) {
-                    if (auto* extra = cell->extraList.GetByType<RE::ExtraCellWaterType>()) {
-                        if (auto* waterForm = extra->water) {
-                            auto editorID = clib_util::editorID::get_editorID(waterForm);
-                            if (!editorID.empty()) {
-                                std::string lowerStr = Utils::ToLower(editorID);
-                                if (lowerStr.find("lava") != std::string::npos) {
-                                    isLava = true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            return isLava;
-        }
-
         void spawnIceChunk(float damage, RE::NiPoint3 SpawnPos, bool isLava, bool Actor = false) {
             if (damage <= 0.0f) {
                 return;

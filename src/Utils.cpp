@@ -251,73 +251,74 @@ namespace Utils {
 
     // Based on po3's Splashes-of-Skyrim
     // https://github.com/powerof3/Splashes-of-Skyrim
-    float get_water_height(const RE::TESObjectREFR* a_ref, const RE::NiPoint3& a_pos) {
-        float waterHeight = a_ref->GetWaterHeight();
-
-        if (!(waterHeight == -RE::NI_INFINITY)) {
-            return waterHeight;
-        }
+    // water height, isLava
+    std::pair<float, bool> get_water_height(const RE::NiPoint3& a_pos) {
+        float waterHeight = -RE::NI_INFINITY;
+        bool isLava = false;
 
         if (const auto waterManager = RE::TESWaterSystem::GetSingleton()) {
-            const RE::BSSpinLockGuard locker(waterManager->lock);  // serialize against water-system mutations
+            const RE::BSSpinLockGuard locker(waterManager->lock); 
 
-            const auto settings = Settings::GetSingleton();
-
-            const auto get_nearest_water_object_height = [&]() {
-                for (const auto& waterObjectPtr : waterManager->waterObjects) {
-                    const auto waterObject = waterObjectPtr.get();  // read slot once to avoid data race
-                    if (!waterObject) {
+            for (const auto& waterObjectPtr : waterManager->waterObjects) {
+                const auto waterObject = waterObjectPtr.get();
+                if (!waterObject) {
+                    continue;
+                }
+                for (const auto& boundPtr : waterObject->multiBounds) {
+                    const auto bound = boundPtr.get();
+                    if (!bound) {
                         continue;
                     }
-                    for (const auto& boundPtr : waterObject->multiBounds) {
-                        const auto bound = boundPtr.get();
-                        if (!bound) {
-                            continue;
-                        }
-                        if (auto size{bound->size}; size.z <= 10.0f) {  // avoid sloped water
-                            auto center{bound->center};
-                            const auto boundMin = center - size;
-                            const auto boundMax = center + size;
-                            if (!(a_pos.x < boundMin.x || a_pos.x > boundMax.x || a_pos.y < boundMin.y ||
-                                  a_pos.y > boundMax.y)) {
-                                return center.z;
+                    if (auto size{bound->size}; size.z <= 10.0f) {  // avoid sloped water
+                        auto center{bound->center};
+                        const auto boundMin = center - size;
+                        const auto boundMax = center + size;
+                        if (!(a_pos.x < boundMin.x || a_pos.x > boundMax.x || a_pos.y < boundMin.y ||
+                              a_pos.y > boundMax.y)) {
+                            waterHeight = center.z;
+
+                            bool lava = false;
+                            auto editorID = clib_util::editorID::get_editorID(waterObject->waterType);
+                            if (!editorID.empty()) {
+                                std::string lowerStr = Utils::ToLower(editorID);
+                                if (lowerStr.find("lava") != std::string::npos) {
+                                    lava = true;
+                                }
                             }
+                            return std::make_pair(waterHeight, lava);
                         }
                     }
                 }
-
-                return -RE::NI_INFINITY;
-            };
-
-            waterHeight = get_nearest_water_object_height();
+            }
         }
 
-        return waterHeight;
+        return std::make_pair(-RE::NI_INFINITY, false);
     }
 
-    std::pair<float, float> get_explosion_water_radius(const RE::Explosion* a_explosion, float base_radius) {
+    // waterAffectedRadius, waterHeight, isLava
+    std::tuple<float, float, bool> get_explosion_water_radius(const RE::Explosion* a_explosion, float base_radius) {
         auto pos = a_explosion->GetPosition();
-        auto waterHeight = Utils::get_water_height(a_explosion, pos);
+        auto [waterHeight, isLava] = Utils::get_water_height(pos);
 
         if (waterHeight == -RE::NI_INFINITY) {
-            return std::make_pair(0.0f, waterHeight);
+            return std::make_tuple(0.0f, waterHeight, isLava);
         }
 
         float explosionZ = pos.z;
 
         if (explosionZ < waterHeight) {
-            return std::make_pair(base_radius, waterHeight);
+            return std::make_tuple(base_radius, waterHeight, isLava);
         }
 
         float heightDiff = explosionZ - waterHeight;
 
         if (heightDiff >= base_radius) {
-            return std::make_pair(0.0f, waterHeight);
+            return std::make_tuple(0.0f, waterHeight, isLava);
         }
 
         float waterAffectedRadius = base_radius - heightDiff;
 
-        return std::make_pair(std::max(waterAffectedRadius, 0.0f), waterHeight);
+        return std::make_tuple(std::max(waterAffectedRadius, 0.0f), waterHeight, isLava);
     }
 }  // namespace Utils
 

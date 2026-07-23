@@ -57,8 +57,9 @@ namespace Utils {
 
     float GetDamageFromProjectile(RE::Projectile* proj);
 
-    float get_water_height(const RE::TESObjectREFR* a_ref, const RE::NiPoint3& a_pos);
+    // Returns: {water_height, isLava}
+    std::pair<float, bool> get_water_height(const RE::NiPoint3& a_pos);
 
-    // Returns: {actual_radius, water_height}
-    std::pair<float, float> get_explosion_water_radius(const RE::Explosion* a_explosion, float base_radius);
+    // Returns: {actual_radius, water_height, isLava}
+    std::tuple<float, float, bool> get_explosion_water_radius(const RE::Explosion* a_explosion, float base_radius);
 }
