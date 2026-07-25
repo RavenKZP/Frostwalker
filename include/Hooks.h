@@ -99,45 +99,45 @@ namespace Hooks {
 
 
         MissileProjectile::Update_ = REL::Relocation<std::uintptr_t>(RE::MissileProjectile::VTABLE[0])
-                                         .write_vfunc(0xAB, MissileProjectile::Update);
-        BeamProjectile::Update_ =
-            REL::Relocation<std::uintptr_t>(RE::BeamProjectile::VTABLE[0]).write_vfunc(0xAB, BeamProjectile::Update);
-        FlameProjectile::Update_ =
-            REL::Relocation<std::uintptr_t>(RE::FlameProjectile::VTABLE[0]).write_vfunc(0xAB, FlameProjectile::Update);
+                                         .write_vfunc(REL::Relocate(0xAB, 0xAB, 0xAC), MissileProjectile::Update);
+        BeamProjectile::Update_ = REL::Relocation<std::uintptr_t>(RE::BeamProjectile::VTABLE[0])
+                                      .write_vfunc(REL::Relocate(0xAB, 0xAB, 0xAC), BeamProjectile::Update);
+        FlameProjectile::Update_ = REL::Relocation<std::uintptr_t>(RE::FlameProjectile::VTABLE[0])
+                                       .write_vfunc(REL::Relocate(0xAB, 0xAB, 0xAC), FlameProjectile::Update);
         // GrenadeProjectile::Update_ = REL::Relocation<std::uintptr_t>(RE::GrenadeProjectile::VTABLE[0])
-        //                                  .write_vfunc(0xAB, GrenadeProjectile::Update);
-        // ArrowProjectile::Update_ =
-        //    REL::Relocation<std::uintptr_t>(RE::ArrowProjectile::VTABLE[0]).write_vfunc(0xAB, ArrowProjectile::Update);
-        ConeProjectile::Update_ =
-            REL::Relocation<std::uintptr_t>(RE::ConeProjectile::VTABLE[0]).write_vfunc(0xAB, ConeProjectile::Update);
+        //                                  .write_vfunc(REL::Relocate(0xAB, 0xAB, 0xAC), GrenadeProjectile::Update);
+        // ArrowProjectile::Update_ = REL::Relocation<std::uintptr_t>(RE::ArrowProjectile::VTABLE[0])
+        //                                .write_vfunc(REL::Relocate(0xAB, 0xAB, 0xAC), ArrowProjectile::Update);
+        ConeProjectile::Update_ = REL::Relocation<std::uintptr_t>(RE::ConeProjectile::VTABLE[0])
+                                      .write_vfunc(REL::Relocate(0xAB, 0xAB, 0xAC), ConeProjectile::Update);
 
         MissileProjectile::AddImpact_ = REL::Relocation<std::uintptr_t>(RE::MissileProjectile::VTABLE[0])
-                                            .write_vfunc(0xBD, MissileProjectile::AddImpact);
-        BeamProjectile::AddImpact_ =
-            REL::Relocation<std::uintptr_t>(RE::BeamProjectile::VTABLE[0]).write_vfunc(0xBD, BeamProjectile::AddImpact);
+                                            .write_vfunc(REL::Relocate(0xBD, 0xBD, 0xBE), MissileProjectile::AddImpact);
+        BeamProjectile::AddImpact_ = REL::Relocation<std::uintptr_t>(RE::BeamProjectile::VTABLE[0])
+                                         .write_vfunc(REL::Relocate(0xBD, 0xBD, 0xBE), BeamProjectile::AddImpact);
         FlameProjectile::AddImpact_ = REL::Relocation<std::uintptr_t>(RE::FlameProjectile::VTABLE[0])
-                                          .write_vfunc(0xBD, FlameProjectile::AddImpact);
+                                          .write_vfunc(REL::Relocate(0xBD, 0xBD, 0xBE), FlameProjectile::AddImpact);
         // GrenadeProjectile::AddImpact_ = REL::Relocation<std::uintptr_t>(RE::GrenadeProjectile::VTABLE[0])
-        //                                     .write_vfunc(0xBD, GrenadeProjectile::AddImpact);
+        //                                     .write_vfunc(REL::Relocate(0xBD, 0xBD, 0xBE), GrenadeProjectile::AddImpact);
         ArrowProjectile::AddImpact_ = REL::Relocation<std::uintptr_t>(RE::ArrowProjectile::VTABLE[0])
-                                          .write_vfunc(0xBD, ArrowProjectile::AddImpact);
-        ConeProjectile::AddImpact_ =
-            REL::Relocation<std::uintptr_t>(RE::ConeProjectile::VTABLE[0]).write_vfunc(0xBD, ConeProjectile::AddImpact);
+                                          .write_vfunc(REL::Relocate(0xBD, 0xBD, 0xBE), ArrowProjectile::AddImpact);
+        ConeProjectile::AddImpact_ = REL::Relocation<std::uintptr_t>(RE::ConeProjectile::VTABLE[0])
+                                         .write_vfunc(REL::Relocate(0xBD, 0xBD, 0xBE), ConeProjectile::AddImpact);
 
         MissileProjectile::SetDelete_ = REL::Relocation<std::uintptr_t>(RE::MissileProjectile::VTABLE[0])
                                             .write_vfunc(0x23, MissileProjectile::SetDelete);
-        BeamProjectile::SetDelete_ =
-            REL::Relocation<std::uintptr_t>(RE::BeamProjectile::VTABLE[0]).write_vfunc(0x23, BeamProjectile::SetDelete);
+        BeamProjectile::SetDelete_ = REL::Relocation<std::uintptr_t>(RE::BeamProjectile::VTABLE[0])
+                                         .write_vfunc(0x23, BeamProjectile::SetDelete);
         FlameProjectile::SetDelete_ = REL::Relocation<std::uintptr_t>(RE::FlameProjectile::VTABLE[0])
                                           .write_vfunc(0x23, FlameProjectile::SetDelete);
         // GrenadeProjectile::SetDelete_ = REL::Relocation<std::uintptr_t>(RE::GrenadeProjectile::VTABLE[0])
         //                                     .write_vfunc(0x23, GrenadeProjectile::SetDelete);
-        ArrowProjectile::SetDelete_ = REL::Relocation<std::uintptr_t>(RE::ArrowProjectile::VTABLE[0])
-                                          .write_vfunc(0x23, ArrowProjectile::SetDelete);
-        ConeProjectile::SetDelete_ =
-            REL::Relocation<std::uintptr_t>(RE::ConeProjectile::VTABLE[0]).write_vfunc(0x23, ConeProjectile::SetDelete);
+        // ArrowProjectile::SetDelete_ = REL::Relocation<std::uintptr_t>(RE::ArrowProjectile::VTABLE[0])
+        //                                   .write_vfunc(0x23, ArrowProjectile::SetDelete);
+        ConeProjectile::SetDelete_ = REL::Relocation<std::uintptr_t>(RE::ConeProjectile::VTABLE[0])
+                                         .write_vfunc(0x23, ConeProjectile::SetDelete);
 
-        ExplosionHook::Initialize_ =
-            REL::Relocation<std::uintptr_t>(RE::Explosion::VTABLE[0]).write_vfunc(0xA2, ExplosionHook::Initialize);
+        ExplosionHook::Initialize_ = REL::Relocation<std::uintptr_t>(RE::Explosion::VTABLE[0])
+                                         .write_vfunc(REL::Relocate(0xA2, 0xA2, 0xA3), ExplosionHook::Initialize);
     }
 }  // namespace Hooks
