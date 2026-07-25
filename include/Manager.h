@@ -75,51 +75,23 @@ namespace Frostwalker {
             auto* set = Settings::GetSingleton();
             float remainingLife = lifetime - age;
 
-            if (remainingLife <= set->meltingTime && remainingLife > 0.0f) {
-                if (auto obj3d = ref->Get3D()) {
-                    float meltProgress = std::clamp(remainingLife / set->meltingTime, 0.0f, 1.0f);
-                    obj3d->local.rotate.entry[2][2] = meltProgress;
-                    if (auto fade = obj3d->AsFadeNode()) {
+            if (auto obj3d = ref->Get3D()) {
+                if (auto fade = obj3d->AsFadeNode()) {
+                    if (remainingLife <= set->meltingTime && remainingLife > 0.0f) {
+                        float meltProgress = std::clamp(remainingLife / set->meltingTime, 0.0f, 1.0f);
                         fade->GetRuntimeData().currentFade = meltProgress;
-                    }
-                    RE::NiUpdateData updData;
-                    updData.flags = RE::NiUpdateData::Flag::kNone;
-                    updData.time = 0.0f;
-                    obj3d->UpdateTransformAndBounds(updData);
-                }
-            } else if (remainingLife <= 0.0f) {
-                if (auto obj3d = ref->Get3D()) {
-                    obj3d->local.rotate.entry[2][2] = 0.0f;
-                    if (auto fade = obj3d->AsFadeNode()) {
-                        fade->GetRuntimeData().currentFade = 0.0f;
-                    }
-                }
-            } else if (age < set->meltingTime) {
-                if (auto obj3d = ref->Get3D()) {
-                    float meltProgress = std::clamp(age / set->meltingTime, 0.0f, 1.0f);
 
-                    if (obj3d->local.rotate.entry[2][2] < 1.0f) {
-                        obj3d->local.rotate.entry[2][2] = meltProgress;
-                        if (auto fade = obj3d->AsFadeNode()) {
-                            fade->GetRuntimeData().currentFade = meltProgress;
-                        }
-                        RE::NiUpdateData updData;
-                        updData.flags = RE::NiUpdateData::Flag::kNone;
-                        updData.time = 0.0f;
-                        obj3d->UpdateTransformAndBounds(updData);
-                    }
-                }
-            } else  {
-                if (auto obj3d = ref->Get3D()) {
-                    if (obj3d->local.rotate.entry[2][2] < 1.0f) {
-                        obj3d->local.rotate.entry[2][2] = 1.0f;
-                        if (auto fade = obj3d->AsFadeNode()) {
-                            fade->GetRuntimeData().currentFade = 1.0f;
-                        }
-                        RE::NiUpdateData updData;
-                        updData.flags = RE::NiUpdateData::Flag::kNone;
-                        updData.time = 0.0f;
-                        obj3d->UpdateTransformAndBounds(updData);
+                    } else if (remainingLife <= 0.0f) {
+                        obj3d->local.rotate.entry[2][2] = 0.0f;
+                        fade->GetRuntimeData().currentFade = 0.0f;
+
+                    } else if (age <= 1.0f) {
+                        // Not working well :(
+                        // float meltProgress = std::clamp(age, 0.0f, 1.0f);
+                        // fade->GetRuntimeData().currentFade = meltProgress;
+
+                    } else {
+                        fade->GetRuntimeData().currentFade = 1.0f;
                     }
                 }
             }
@@ -208,7 +180,8 @@ namespace Frostwalker {
                             float distance = spawnPos.GetDistance(HazardPos);
                             if (distance < set->IceDistance) {
                                 if (auto hazardHazard = hazardRef->As<RE::Hazard>()) {
-                                    hazardHazard->GetHazardRuntimeData().age = 0.0f;
+                                    hazardHazard->GetHazardRuntimeData().age =
+                                        std::min(hazardHazard->GetHazardRuntimeData().age, 1.0f);
                                 }
                                 return;
                             }
@@ -485,12 +458,11 @@ namespace Frostwalker {
                 if (auto hazard = a_ref->As<RE::Hazard>()) {
                     auto lifetime = hazard->GetHazardRuntimeData().lifetime;
                     auto age = hazard->GetHazardRuntimeData().age;
-                    hazard->GetHazardRuntimeData().age = std::max(age - scaledDamage, 0.0f);
+                    hazard->GetHazardRuntimeData().age = std::max(age - scaledDamage, 1.0f);
                     if (age - scaledDamage < 0.0f) {
                         hazard->GetHazardRuntimeData().lifetime =
                             std::min(lifetime + (scaledDamage - age), set->maxLifetime);
                     }
-                    MeltObject(hazard, hazard->GetHazardRuntimeData().lifetime, hazard->GetHazardRuntimeData().age);
                 }
             } else if (type == ElementType::Fire) {
                 if (auto hazard = a_ref->As<RE::Hazard>()) {
@@ -512,11 +484,10 @@ namespace Frostwalker {
                         if (auto hazard = a_ref->As<RE::Hazard>()) {
                             auto lifetime = hazard->GetHazardRuntimeData().lifetime;
                             auto age = hazard->GetHazardRuntimeData().age;
-
-                            float threshold = lifetime - set->meltingTime;
-
-                            if (age < threshold) {
-                                hazard->GetHazardRuntimeData().age = std::min(age + scaledDamage, threshold);
+                            hazard->GetHazardRuntimeData().age = std::max(age - scaledDamage, 1.0f);
+                            if (age - scaledDamage < 0.0f) {
+                                hazard->GetHazardRuntimeData().lifetime =
+                                    std::min(lifetime + (scaledDamage - age), set->maxLifetime);
                             }
                         }
                     }
@@ -585,9 +556,13 @@ namespace Frostwalker {
                 }
 
                 int iceChunk = 0;
-                if (!Actor) {
+                if (!Actor || damage < 50) {
                     int maxIndex =static_cast<int>(Floes.size()) - 1;
-                    iceChunk = RandomInt(0, maxIndex);
+                    if (damage > 15) {
+                        iceChunk = RandomInt(0, maxIndex);
+                    } else {
+                        iceChunk = RandomInt(1, maxIndex);
+                    }
                 }
 
                 RE::TESBoundObject* objToSpawn = Floes[static_cast<std::size_t>(iceChunk)];
@@ -603,7 +578,8 @@ namespace Frostwalker {
                 }
                 // Random rotation around Z-axis (yaw) to add visual variety
                 float yaw = RandomFloat(-M_PI_F, M_PI_F);
-                float scale = Actor ? set->maxScale :std::clamp(damage / set->damageScale, set->minScale, set->maxScale);
+                float scale =
+                    Actor ? set->maxScale : std::clamp(damage / set->damageScale, set->minScale, set->maxScale);
 
                 RE::NiPoint3 finalSpawnPos = SpawnPos;
                 finalSpawnPos.z += RandomFloat(-1.0f, 1.0f);  // Slightly randomize the Z position for fixing z fighting
