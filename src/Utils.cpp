@@ -39,30 +39,13 @@ namespace Utils {
     }
 
     ElementType GetProjectileType(RE::Projectile* proj) {
-        ElementType ret = GetProjectileTypeNoLogs(proj);
-        return ret;
-        std::string typeStr = "";
-
-        if (ret == ElementType::Cold)
-            typeStr = "Cold";
-        else if (ret == ElementType::Fire)
-            typeStr = "Fire";
-        else if (ret == ElementType::Water)
-            typeStr = "Water";
-        else
-            typeStr = "Neutral";
-        logger::info("Projectile Type Detection: {} -> {}", proj ? proj->GetFormID() : 0, typeStr);
-        return ret;
-    }
-
-    ElementType GetProjectileTypeNoLogs(RE::Projectile* proj) {
         static auto* set = Settings::GetSingleton();
         static auto* DetectionCache = DetectionCache::GetSingleton();
 
-        if (!proj) return ElementType::Neutral;
+        if (!proj) return ElementType::Unknown;
 
         auto* base = proj->GetBaseObject();
-        if (!base) return ElementType::Neutral;
+        if (!base) return ElementType::Unknown;
 
         auto baseFormID = base->GetFormID();
 
@@ -72,11 +55,11 @@ namespace Utils {
             return cacheIt.value();
         }
 
-        ElementType type = ElementType::Neutral;
+        ElementType type = ElementType::Unknown;
 
         // Helper lambda for string pattern detection
         auto CheckPatterns = [&](RE::TESForm* form) -> ElementType {
-            if (!form) return ElementType::Neutral;
+            if (!form) return ElementType::Unknown;
 
             auto TryMatch = [&](const std::string& str) -> ElementType {
                 std::string lowerStr = ToLower(str);
@@ -84,30 +67,30 @@ namespace Utils {
                 if (MatchesAnyPattern(lowerStr, set->coldSources)) return ElementType::Cold;
                 if (MatchesAnyPattern(lowerStr, set->fireSources)) return ElementType::Fire;
                 if (MatchesAnyPattern(lowerStr, set->waterSources)) return ElementType::Water;
-                return ElementType::Neutral;
+                return ElementType::Unknown;
             };
 
             if (auto editorID = form->GetFormEditorID()) {
                 type = TryMatch(editorID);
-                if (type != ElementType::Neutral) return type;
+                if (type != ElementType::Unknown) return type;
             }
             auto editorID = clib_util::editorID::get_editorID(form);
             if (!editorID.empty()) {
                 type = TryMatch(editorID);
-                if (type != ElementType::Neutral) return type;
+                if (type != ElementType::Unknown) return type;
             }
             if (auto fullName = form->GetName()) {
                 type = TryMatch(fullName);
-                if (type != ElementType::Neutral) return type;
+                if (type != ElementType::Unknown) return type;
             }
 
-            return ElementType::Neutral;
+            return ElementType::Unknown;
         };
 
         // 3. Check spell source
         if (auto spellSource = proj->GetProjectileRuntimeData().spell) {
             type = CheckPatterns(spellSource);
-            if (type != ElementType::Neutral) {
+            if (type != ElementType::Unknown) {
                 DetectionCache->Add(baseFormID, type);
                 return type;
             }
@@ -116,7 +99,7 @@ namespace Utils {
             for (auto magEf : spellSource->effects) {
                 if (magEf && magEf->baseEffect) {
                     type = CheckPatterns(magEf->baseEffect);
-                    if (type != ElementType::Neutral) {
+                    if (type != ElementType::Unknown) {
                         DetectionCache->Add(baseFormID, type);
                         return type;
                     }
@@ -126,14 +109,14 @@ namespace Utils {
 
         // 4. Ammo source
         type = CheckPatterns(proj->GetProjectileRuntimeData().ammoSource);
-        if (type != ElementType::Neutral) {
+        if (type != ElementType::Unknown) {
             DetectionCache->Add(baseFormID, type);
             return type;
         }
 
         // 5. Weapon source
         type = CheckPatterns(proj->GetProjectileRuntimeData().weaponSource);
-        if (type != ElementType::Neutral) {
+        if (type != ElementType::Unknown) {
             DetectionCache->Add(baseFormID, type);
             return type;
         }
@@ -148,10 +131,10 @@ namespace Utils {
         static auto* set = Settings::GetSingleton();
         static auto* DetectionCache = DetectionCache::GetSingleton();
 
-        if (!exp) return ElementType::Neutral;
+        if (!exp) return ElementType::Unknown;
 
         auto* base = exp->GetBaseObject();
-        if (!base) return ElementType::Neutral;
+        if (!base) return ElementType::Unknown;
 
         auto baseFormID = base->GetFormID();
 
@@ -161,11 +144,11 @@ namespace Utils {
             return cacheIt.value();
         }
 
-        ElementType type = ElementType::Neutral;
+        ElementType type = ElementType::Unknown;
 
         // Helper lambda for pattern matching
         auto CheckPatterns = [&](RE::TESForm* form) -> ElementType {
-            if (!form) return ElementType::Neutral;
+            if (!form) return ElementType::Unknown;
 
             auto TryMatch = [&](const std::string& str) -> ElementType {
                 std::string lowerStr = ToLower(str);
@@ -173,28 +156,28 @@ namespace Utils {
                 if (MatchesAnyPattern(lowerStr, set->coldSources)) return ElementType::Cold;
                 if (MatchesAnyPattern(lowerStr, set->fireSources)) return ElementType::Fire;
                 if (MatchesAnyPattern(lowerStr, set->waterSources)) return ElementType::Water;
-                return ElementType::Neutral;
+                return ElementType::Unknown;
             };
 
             if (auto editorID = form->GetFormEditorID()) {
                 type = TryMatch(editorID);
-                if (type != ElementType::Neutral) return type;
+                if (type != ElementType::Unknown) return type;
             }
             auto editorID = clib_util::editorID::get_editorID(form);
             if (!editorID.empty()) {
                 type = TryMatch(editorID);
-                if (type != ElementType::Neutral) return type;
+                if (type != ElementType::Unknown) return type;
             }
             if (auto fullName = form->GetName()) {
                 type = TryMatch(fullName);
-                if (type != ElementType::Neutral) return type;
+                if (type != ElementType::Unknown) return type;
             }
             if (auto model = form->As<RE::TESModel>()) {
                 type = TryMatch(model->model.c_str());
-                if (type != ElementType::Neutral) return type;
+                if (type != ElementType::Unknown) return type;
             }
 
-            return ElementType::Neutral;
+            return ElementType::Unknown;
         };
 
         type = CheckPatterns(base);
@@ -257,7 +240,8 @@ namespace Utils {
         bool isLava = false;
 
         if (const auto waterManager = RE::TESWaterSystem::GetSingleton()) {
-            const RE::BSSpinLockGuard locker(waterManager->lock); 
+            // No need for locking here since we are only reading data and not modifying it.
+            //const RE::BSSpinLockGuard locker(waterManager->lock); 
 
             for (const auto& waterObjectPtr : waterManager->waterObjects) {
                 const auto waterObject = waterObjectPtr.get();

@@ -6,6 +6,7 @@
 #include <shared_mutex>
 
 enum ElementType {
+    Unknown = -1,
     Neutral = 0,
     Fire,
     Shock,
@@ -52,7 +53,6 @@ namespace Utils {
     std::string ToLower(std::string s);
 
     ElementType GetProjectileType(RE::Projectile* proj);
-    ElementType GetProjectileTypeNoLogs(RE::Projectile* proj);
     ElementType GetExplosionType(RE::Explosion* exp);
 
     float GetDamageFromProjectile(RE::Projectile* proj);

@@ -7,17 +7,26 @@
 3. (optional) **`SKYRIM_FOLDER`**: path of your Skyrim Special Edition folder.
 4. (optional) **`SKYRIM_MODS_FOLDER`**: path of the folder where your mods are.
 
-#### THINGS TO EDIT
+#### Mod Page
 
-1. CMakeLists.txt
-- **`AUTHORNAME`**
-- **`MDDNAME`**
-- (optional) Your plugin version. Default: `0.1.0.0`
-2. vcpkg.json
-- **`name`**: Your plugin's name.
-- **`version-string`**: Your plugin version. Default: `0.1.0.0`
+[Frostwalker - Nexus](https://www.nexusmods.com/skyrimspecialedition/mods/184628)
 
-#### FEATURES
-Automatically imports:
-- [CLibUtil](https://github.com/powerof3/CLibUtil) by powerof3
-- [SKSE Menu Framework](https://www.nexusmods.com/skyrimspecialedition/mods/120352) by Thiago099
+Frostwalker lets frost spells freeze the surface of water.
+Frost or water spells harden surface of lava.
+Casting frost magic at water creates temporary ice floes that can be walked across before eventually melting away.
+Different spells produce different results. Powerful spells create larger frozen areas, explosions freeze wider sections of water, and concentrated spells create smaller patches of ice.
+
+## License
+
+GPL-3.0-or-later WITH Modding Exception AND GPL-3.0 Linking Exception (with Corresponding Source).
+Specifically, the Modded Code includes:
+
+- Skyrim (and its variants)
+- Hardware drivers to enable additional functionality provided via proprietary SDKs, such as [Nvidia DLSS/Streamline](https://developer.nvidia.com/rtx/dlss/get-started) and [AMD FidelityFX FSR3](https://gpuopen.com/fidelityfx-super-resolution-3/)
+
+The Modding Libraries include:
+
+- [SKSE](https://skse.silverlock.org/)
+- Windows
+
+See [CommonLibSSE-NG by License](https://github.com/alandtse/CommonLibSSE-NG) for details

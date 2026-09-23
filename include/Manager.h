@@ -154,6 +154,13 @@ namespace Frostwalker {
                 !a_actor->Is3DLoaded()) {
                 return;
             }
+            bool shouldFreeze = ShouldFreezeWater(a_actor);
+            bool shouldMelt = ShouldMeltIce(a_actor);
+            bool shouldLava = ShouldHardRockLava(a_actor);
+
+            if (!shouldFreeze && !shouldMelt && !shouldLava) {
+                return;
+            }
 
             auto actorPos = a_actor->GetPosition();
             auto [waterHeight, isLava] = Utils::get_water_height(actorPos);
@@ -167,7 +174,7 @@ namespace Frostwalker {
                 const auto level = (waterHeight + 100 - actorPos.z) / actorHeight;
                 auto* set = Settings::GetSingleton();
 
-                if (level >= 0.1f && (ShouldFreezeWater(a_actor)  || (isLava && ShouldHardRockLava(a_actor )))) {
+                if (level >= 0.1f && (shouldFreeze || (isLava && shouldLava))) {
                     if (actorPos.z < waterHeight - 50) {
                         // Actor is too deep in water, don't spawn ice chunk
                         return;
@@ -190,7 +197,7 @@ namespace Frostwalker {
                     
                     spawnIceChunk(50, spawnPos, isLava, true);
 
-                } else if (ShouldMeltIce(a_actor)) {
+                } else if (shouldMelt) {
                     for (auto& hazard : HazardIceChunks) {
                         if (auto hazardRef = hazard.second.handle.get().get()) {
                             auto HazardPos = hazardRef->GetPosition();

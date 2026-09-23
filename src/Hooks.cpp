@@ -8,6 +8,7 @@ namespace Hooks {
     void UpdatePlayerHook::Update(RE::Actor* a_this, float a_delta) {
         Update_(a_this, a_delta);
 
+        auto start = std::chrono::high_resolution_clock::now();
         static auto* set = Settings::GetSingleton();
         if (!set->ModActive) {
             return;
@@ -15,17 +16,24 @@ namespace Hooks {
 
         Frostwalker::Manager::GetSingleton()->FrameUpdate(a_delta);
         Frostwalker::Manager::GetSingleton()->FrostWalk(a_this);
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> elapsed = end - start;
+        logger::debug("UpdatePlayerHook took {} ms", elapsed.count());
 
     }
 
     void UpdateActorHook::Update(RE::Actor* a_this, float a_delta) {
         Update_(a_this, a_delta);
+        auto start = std::chrono::high_resolution_clock::now();
 
         static auto* set = Settings::GetSingleton();
         if (!set->ModActive) {
             return;
         }
         Frostwalker::Manager::GetSingleton()->FrostWalk(a_this);
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> elapsed = end - start;
+        logger::debug("UpdateActorHook took {} ms", elapsed.count());
     }
 
     // Projectile Updates
